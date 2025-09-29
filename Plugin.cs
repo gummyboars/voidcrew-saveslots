@@ -21,6 +21,9 @@ using UI;
 using UI.Core;
 using UI.Core.Audio;
 
+using VoidManager;
+using VoidManager.MPModChecks;
+
 namespace SaveSlots;
 
 [Serializable]
@@ -33,6 +36,11 @@ public class PreservedSessionWithMetadata
         Session = session;
         Timestamp = timestamp;
     }
+}
+
+class VoidManagerPlugin : VoidManager.VoidPlugin
+{
+    public override MultiplayerType MPType => MultiplayerType.Client;
 }
 
 [BepInPlugin(pluginGUID, pluginName, pluginVersion)]

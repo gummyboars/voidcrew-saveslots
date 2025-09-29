@@ -13,6 +13,9 @@
       https://nuget.samboy.dev/v3/index.json
     </RestoreAdditionalProjectSources>
     <RootNamespace>SaveSlots</RootNamespace>
+    <Authors>fingoldfish</Authors>
+    <Description>Provides multiple save slots and allows you to choose which one to restore.</Description>
+    <AssemblyTitle>Provides multiple save slots and allows you to choose which one to restore.</AssemblyTitle>
   </PropertyGroup>
 
   <ItemGroup>
@@ -40,6 +43,9 @@
     </Reference>
     <Reference Include="UnityEngine.UIElements">
       <HintPath>$(HOME)/.steam/steamapps/common/Void Crew/Void Crew_Data/Managed/UnityEngine.UIElements.dll</HintPath>
+    </Reference>
+    <Reference Include="VoidManager">
+      <HintPath>$(HOME)/.steam/steamapps/common/Void Crew/BepInEx/plugins/VoidManager.dll</HintPath>
     </Reference>
   </ItemGroup>
   
