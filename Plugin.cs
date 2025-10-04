@@ -48,7 +48,7 @@ public class SaveSlotsPlugin : BaseUnityPlugin
 {
     const string pluginGUID = "com.gummyboars.voidcrew.saveslots";
     const string pluginName = "Save Slots";
-    const string pluginVersion = "1.0.0";
+    const string pluginVersion = "1.0.1";
 
     private Harmony HarmonyInstance = null;
 
@@ -63,6 +63,7 @@ public class SaveSlotsPlugin : BaseUnityPlugin
             Assembly assembly = Assembly.GetExecutingAssembly();
             HarmonyInstance.PatchAll(assembly);
             SaveSlotsPlugin.logger.LogInfo($"Plugin {pluginName} version {pluginVersion} loaded.");
+            ModdingUtils.RegisterLocalMod();
         }
         catch (Exception e)
         {
