@@ -85,45 +85,33 @@ public static class SessionSaver
         Sessions[session.GameSessionID] = new PreservedSessionWithMetadata(session, now);
     }
 
-    // When loading the PlayerData from the cloud, also load the PreservedSessionS from the cloud.
+    // When reading the user profile, also read preserved sessions before returning a PlayerData object.
+    // The initialization continues in PostSetupValidate (patched below).
     [HarmonyPostfix]
-    [HarmonyPatch(typeof(CloudLocalProfile), MethodType.Constructor)]
-    private static void PatchAfterProfileCreation()
+    [HarmonyPatch(typeof(CloudProfileReader), "GetProfile")]
+    private static Task<PlayerData> GetPreservedSessionsWithProfile(Task<PlayerData> origTask)
     {
-        CloudAuthenticate.OnAuthenticated += LoadPreservedSessions;
+        return origTask.ContinueWith(LoadSessions).Unwrap();
     }
 
-    // LoadPreservedSessions and LoadCloudProfile will race. Whichever finishes second is responsible for
-    // calling InitializePreservedSessions. TODO: is there a way to combine them? Various profile
-    // initialization hooks may depend on the preserved sessions.
-    private static async void LoadPreservedSessions()
+    private static async Task<PlayerData> LoadSessions(Task<PlayerData> orig)
     {
+        SaveSlotsPlugin.logger.LogInfo("Reading preserved sessions from cloud");
         SessionsText = await CloudSyncController.ReadFromCloud("PreservedSessions");  // With an s
-        if (SessionsText == null)
-        {
-            SessionsText = "";
-        }
-        if (PlayerProfile.IsInitalized)
-        {
-            SaveSlotsPlugin.logger.LogInfo("Preserved sessions were loaded after the rest of the profile.");
-            InitializePreservedSessions();
-        }
+        return orig.Result;
     }
 
+    // Save preserved sessions in this class. If none exist (first time using the mod), save the current preserved session.
     [HarmonyPrefix]
     [HarmonyPatch(typeof(ProfileDataValidator), "PostSetupValidate")]
     private static void PatchAfterProfileLoad()
     {
-        if (SessionsText != null)
+        if (SessionsText == null)
         {
-            SaveSlotsPlugin.logger.LogInfo("Profile was loaded after preserved sessions.");
-            InitializePreservedSessions();
+            SaveSlotsPlugin.logger.LogError("Profile was loaded before preserved sessions.");
+            return;
         }
-    }
 
-    // Save preserved sessions in this class. If none exist (first time using the mod), save the current preserved session.
-    private static void InitializePreservedSessions()
-    {
         if (PlayerProfile.Instance is CloudLocalProfile clp)  // Only works for cloud profiles
         {
             if (string.IsNullOrEmpty(SessionsText))
@@ -151,8 +139,30 @@ public static class SessionSaver
             {
                 SaveSlotsPlugin.logger.LogInfo($"Preserved session {clp.PreservedSession.PreservedSession.GameSessionID} missing from preserved sessions; adding it");
                 Set(clp.PreservedSession.PreservedSession);
+                return;
             }
+            SetSessionIfNewer(clp.PreservedSession.PreservedSession, Sessions[clp.PreservedSession.PreservedSession.GameSessionID].Session);
         }
+    }
+
+    // Compare the vanilla saved session and the saved session from PreservedSessions by using the jump count. If
+    // the vanilla session is newer (maybe the user turned the mod off and back on again), use the newer version
+    // in the preserved sessions.
+    private static void SetSessionIfNewer(PreservedGameSession currentSession, PreservedGameSession modSession)
+    {
+        if (currentSession.PreservedQuest == null || currentSession.PreservedQuest.CompletedSectors == null)
+        {
+            return;
+        }
+        if (modSession.PreservedQuest == null || modSession.PreservedQuest.CompletedSectors == null)
+        {
+            return;
+        }
+        if (currentSession.PreservedQuest.CompletedSectors.Count <= modSession.PreservedQuest.CompletedSectors.Count)
+        {
+            return;
+        }
+        Set(currentSession);
     }
 
     // When ClearSession is called, delete the session if it exists.
