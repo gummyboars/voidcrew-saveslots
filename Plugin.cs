@@ -48,7 +48,7 @@ public class SaveSlotsPlugin : BaseUnityPlugin
 {
     const string pluginGUID = "com.gummyboars.voidcrew.saveslots";
     const string pluginName = "Save Slots";
-    const string pluginVersion = "1.0.1";
+    const string pluginVersion = "1.0.2";
 
     private Harmony HarmonyInstance = null;
 
@@ -303,6 +303,14 @@ public static class Patch_UpdateAvailableGamemodes
         {
             SaveSlotsPlugin.logger.LogInfo($"Using latest saved session {latestSession.Session.GameSessionID}");
             PlayerProfile.Instance.PreservedSession.PreservedSession = latestSession.Session;
+            foreach (KeyValuePair<string, Toggle> pair in Patch_MutatorsMenu.saves)
+            {
+                if (pair.Key == latestSession.Session.GameSessionID)
+                {
+                    pair.Value.SetValueWithoutNotify(true);
+                    break;
+                }
+            }
         }
     }
 
@@ -415,7 +423,7 @@ public static class Patch_MutatorsMenu
             origText = mutatorsDropdownLabel.text;
         }
         string labelText = "SAVED SESSION";
-        if (PlayerProfile.Instance.PreservedSession.PreservedSession != null && SessionSaver.Sessions.ContainsKey(PlayerProfile.Instance.PreservedSession.PreservedSession.GameSessionID))
+        if (PlayerProfile.Instance.PreservedSession.PreservedSession != null && PlayerProfile.Instance.PreservedSession.PreservedSession.GameSessionID != null && SessionSaver.Sessions.ContainsKey(PlayerProfile.Instance.PreservedSession.PreservedSession.GameSessionID))
         {
             labelText = GetSaveText(SessionSaver.Sessions[PlayerProfile.Instance.PreservedSession.PreservedSession.GameSessionID]);
         }
